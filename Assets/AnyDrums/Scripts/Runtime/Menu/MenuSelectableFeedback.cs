@@ -1,0 +1,94 @@
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+namespace AnyDrums.Menu
+{
+    /// <summary>
+    /// Retroalimentación de un control del menú: se resalta y crece un poco cuando el rayo pasa encima,
+    /// y al presionarlo suena un clic y vibra el mando.
+    /// </summary>
+    [RequireComponent(typeof(Selectable))]
+    public class MenuSelectableFeedback : MonoBehaviour,
+        IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
+    {
+        [SerializeField] MenuAudio _audio;
+        [SerializeField] RectTransform _scaleTarget;
+        [SerializeField] float _hoverScale = 1.04f;
+        [SerializeField] float _pressedScale = 0.97f;
+        [SerializeField] bool _hoverSound = true;
+        [SerializeField] bool _clickSound = true;
+        [SerializeField, Range(0f, 1f)] float _hapticAmplitude = 0.45f;
+
+        [Header("Color (opcional)")]
+        [SerializeField] Graphic _tintTarget;
+        [SerializeField] Color _normalColor = Color.white;
+        [SerializeField] Color _hoverColor = Color.white;
+        [SerializeField] Color _pressedColor = Color.white;
+
+        Selectable _selectable;
+        bool _hovered, _pressed;
+
+        public bool IsHovered => _hovered;
+
+        void Awake()
+        {
+            _selectable = GetComponent<Selectable>();
+            if (_scaleTarget == null) _scaleTarget = (RectTransform)transform;
+        }
+
+        void OnDisable()
+        {
+            _hovered = _pressed = false;
+            if (_scaleTarget != null) _scaleTarget.localScale = Vector3.one;
+            if (_tintTarget != null) _tintTarget.color = _normalColor;
+        }
+
+        /// <summary>Cambia el color base; el resaltado y el presionado se derivan de él.</summary>
+        public void SetBaseColor(Color normal)
+        {
+            _normalColor = normal;
+            _hoverColor = Color.Lerp(normal, Color.white, 0.18f);
+            _pressedColor = Color.Lerp(normal, Color.black, 0.15f);
+            _hoverColor.a = _pressedColor.a = normal.a;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (!_selectable.IsInteractable()) return;
+            _hovered = true;
+            if (_hoverSound && _audio != null) _audio.PlayHover();
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            _hovered = false;
+            _pressed = false;
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (!_selectable.IsInteractable()) return;
+            _pressed = true;
+            if (_clickSound && _audio != null) _audio.PlayClick();
+            ControllerHaptics.PulsePressingController(_hapticAmplitude);
+        }
+
+        public void OnPointerUp(PointerEventData eventData) => _pressed = false;
+
+        void Update()
+        {
+            bool interactable = _selectable.IsInteractable();
+            float targetScale = !interactable ? 1f : _pressed ? _pressedScale : _hovered ? _hoverScale : 1f;
+            float k = 1f - Mathf.Exp(-18f * Time.unscaledDeltaTime);
+            _scaleTarget.localScale = Vector3.Lerp(_scaleTarget.localScale, Vector3.one * targetScale, k);
+
+            if (_tintTarget != null)
+            {
+                Color target = !interactable ? _normalColor * new Color(0.6f, 0.6f, 0.6f, 0.6f)
+                    : _pressed ? _pressedColor : _hovered ? _hoverColor : _normalColor;
+                _tintTarget.color = Color.Lerp(_tintTarget.color, target, k);
+            }
+        }
+    }
+}
