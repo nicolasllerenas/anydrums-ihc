@@ -78,6 +78,7 @@ namespace AnyDrums.EditorTools
                 if (!EnsureTmpEssentials()) throw new InvalidOperationException("Faltan los TMP Essential Resources.");
                 BuildScene();
                 CapturePreview("Logs/MainMenuPreview.png");
+                StudioScenesCheck.Check();
             }
             catch (Exception e)
             {

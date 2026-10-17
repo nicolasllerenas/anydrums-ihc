@@ -8,4 +8,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/AnyDrums/Scenes/MainMenu.unity
     guid: 4a8506bd629200a4e8fa300b79f8c4a4
+  - enabled: 1
+    path: Assets/Scenes/drumsAcustic.unity
+    guid: 7138dce992980e149a8eac59338242bb
+  - enabled: 1
+    path: Assets/Scenes/drumsElectric.unity
+    guid: 2971e3d648a49724daa243a296175c62
   m_configObjects: {}
