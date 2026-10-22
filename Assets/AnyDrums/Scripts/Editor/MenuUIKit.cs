@@ -29,11 +29,21 @@ namespace AnyDrums.EditorTools
             " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" +
             "¡¿ÁÉÍÓÚÜÑáéíóúüñ·–—…";
 
-        public static readonly Color White06 = new Color(1f, 1f, 1f, 0.06f);
-        public static readonly Color White08 = new Color(1f, 1f, 1f, 0.08f);
-        public static readonly Color White12 = new Color(1f, 1f, 1f, 0.12f);
-        public static readonly Color White16 = new Color(1f, 1f, 1f, 0.16f);
-        public static readonly Color White26 = new Color(1f, 1f, 1f, 0.26f);
+        // Tonos sobre el panel ya mezclados y opacos. Con blancos semitransparentes el resultado cambia mucho entre
+        // espacio de color Gamma y Lineal (Lineal los aclara); así se ven igual en ambos.
+        public static readonly Color White06 = OnPanel(0.06f);
+        public static readonly Color White08 = OnPanel(0.08f);
+        public static readonly Color White12 = OnPanel(0.12f);
+        public static readonly Color White16 = OnPanel(0.16f);
+        public static readonly Color White18 = OnPanel(0.18f);
+        public static readonly Color White26 = OnPanel(0.26f);
+
+        static Color OnPanel(float whiteAmount)
+        {
+            var c = Color.Lerp(MenuPalette.Panel, Color.white, whiteAmount);
+            c.a = 1f;
+            return c;
+        }
 
         public class Fonts
         {
@@ -113,6 +123,8 @@ namespace AnyDrums.EditorTools
             var canvas = go.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.worldCamera = eventCamera;
+            // Se dibuja después de los efectos transparentes del cuarto (conos de luz, brillos) para que no lo tapen.
+            canvas.sortingOrder = 10;
 
             var source = go.GetComponent<AudioSource>();
             source.playOnAwake = false;
@@ -138,6 +150,22 @@ namespace AnyDrums.EditorTools
             interaction.name = "ISDK_RayCanvasInteraction";
             Stretch((RectTransform)interaction.transform);
             interaction.GetComponent<PointableCanvas>().InjectCanvas(canvas);
+        }
+
+        /// <summary>
+        /// El rig OVRCameraRigInteraction (el mismo que usa el equipo) está marcado como obsoleto en el SDK 201 y
+        /// llena la consola de advertencias en cada Play. Funciona igual, así que se silencian esas advertencias.
+        /// </summary>
+        public static void SuppressDeprecatedPrefabWarnings(GameObject rig)
+        {
+            foreach (var deprecated in rig.GetComponentsInChildren<DeprecatedPrefab>(true))
+            {
+                var so = new SerializedObject(deprecated);
+                var property = so.FindProperty("_supressWarning");
+                if (property == null || property.boolValue) continue;
+                property.boolValue = true;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         /// <summary>PointableCanvasModule convierte los rayos del Interaction SDK en eventos de uGUI.</summary>
@@ -205,7 +233,7 @@ namespace AnyDrums.EditorTools
 
             var background = Img(Stretch(UI("Background", card)), Art("round_fill"), new Color32(0x1A, 0x1D, 0x25, 0xFF),
                 Radius(radius), raycast: true);
-            var border = Img(Stretch(UI("Border", card)), Art("outline_card"), new Color(1f, 1f, 1f, 0.1f), 2f * 28f / radius);
+            var border = Img(Stretch(UI("Border", card)), Art("outline_card"), KitOptionCard.BorderIdle, 2f * 28f / radius);
 
             float iconSize = compact ? 84f : 100f;
             float textX = compact ? 124f : 154f;
@@ -402,7 +430,7 @@ namespace AnyDrums.EditorTools
             var root = At(UI(name, parent), x, y, width, height);
             Color background = primary ? MenuPalette.AcousticAccent : White06;
             var backgroundImage = Img(root, Art("round_fill"), background, Radius(height / 2f), raycast: true);
-            if (!primary) Img(Stretch(UI("Outline", root)), Art("outline_pill"), new Color(1f, 1f, 1f, 0.18f), 2f * 50f / (height / 2f));
+            if (!primary) Img(Stretch(UI("Outline", root)), Art("outline_pill"), White18, 2f * 50f / (height / 2f));
 
             var content = Stretch(UI("Content", root));
             var layout = content.gameObject.AddComponent<HorizontalLayoutGroup>();
@@ -426,7 +454,7 @@ namespace AnyDrums.EditorTools
                 column.childForceExpandWidth = false;
                 column.childForceExpandHeight = false;
                 Text(UI("Label", textBlock), label, font, fontSize, labelColor, TextAlignmentOptions.Midline);
-                Text(UI("Summary", textBlock), summary, fonts.SemiBold, fontSize * 0.64f, WithAlpha(labelColor, 0.75f),
+                Text(UI("Summary", textBlock), summary, fonts.SemiBold, fontSize * 0.64f, labelColor,
                     TextAlignmentOptions.Midline);
             }
             else

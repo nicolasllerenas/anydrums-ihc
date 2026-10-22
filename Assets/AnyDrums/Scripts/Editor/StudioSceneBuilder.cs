@@ -103,6 +103,7 @@ namespace AnyDrums.EditorTools
             var electronicKit = roots.FirstOrDefault(g => g.name == "Kit_Electronic");
             var rig = roots.FirstOrDefault(g => g.GetComponentInChildren<OVRCameraRig>(true) != null);
             var headCamera = rig != null ? FindDeep(rig.transform, "CenterEyeAnchor")?.GetComponent<Camera>() : null;
+            if (rig != null) SuppressDeprecatedPrefabWarnings(rig);
 
             var systems = new GameObject(SystemsName);
             var switcher = systems.AddComponent<StudioKitSwitcher>();

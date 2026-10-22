@@ -93,7 +93,7 @@ namespace AnyDrums.Menu
 
             if (_tintTarget != null)
             {
-                Color target = !interactable ? _normalColor * new Color(0.6f, 0.6f, 0.6f, 0.6f)
+                Color target = !interactable ? _normalColor
                     : _pressed ? _pressedColor : _hovered ? _hoverColor : _normalColor;
                 Color current = _tintTarget.color;
                 if (current != target)

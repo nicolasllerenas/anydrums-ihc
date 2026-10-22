@@ -64,6 +64,7 @@ namespace AnyDrums.EditorTools
                 Lines.Clear();
                 ConsoleErrors.Clear();
                 _failures = 0;
+                _deprecatedWarnings = 0;
                 Application.logMessageReceived += OnLog;
                 _routine = Scenario();
                 _waitUntil = 0;
@@ -81,6 +82,23 @@ namespace AnyDrums.EditorTools
         {
             if (type == LogType.Exception || type == LogType.Assert || type == LogType.Error)
                 ConsoleErrors.Add($"{type}: {message.Split('\n')[0]}");
+            else if (type == LogType.Warning && message.Contains("has been deprecated"))
+                _deprecatedWarnings++;
+        }
+
+        static int _deprecatedWarnings;
+
+        // Simula dónde caería un clic del mouse sobre el centro de un control y revisa que lo reciba ese control.
+        static bool MouseReaches(Component target)
+        {
+            var cam = Camera.main;
+            var eventSystem = UnityEngine.EventSystems.EventSystem.current;
+            if (cam == null || eventSystem == null) return false;
+            Vector3 screen = cam.WorldToScreenPoint(target.transform.position);
+            var data = new UnityEngine.EventSystems.PointerEventData(eventSystem) { position = screen };
+            var hits = new List<UnityEngine.EventSystems.RaycastResult>();
+            eventSystem.RaycastAll(data, hits);
+            return hits.Count > 0 && hits[0].gameObject.transform.IsChildOf(target.transform);
         }
 
         static void Tick()
@@ -132,6 +150,7 @@ namespace AnyDrums.EditorTools
 
             var exceptions = ConsoleErrors.Where(e => e.StartsWith("Exception")).ToList();
             Check(exceptions.Count == 0, $"Sin excepciones en la consola ({exceptions.Count})");
+            Check(_deprecatedWarnings == 0, $"Sin advertencias de prefabs obsoletos del rig ({_deprecatedWarnings})");
 
             var report = new StringBuilder();
             report.AppendLine($"Prueba automática AnyDrums – {DateTime.Now:yyyy-MM-dd HH:mm}");
@@ -188,6 +207,13 @@ namespace AnyDrums.EditorTools
             Check(acousticCard.IsSelected && !electronicCard.IsSelected, "La tarjeta acústica se ve seleccionada");
             MainMenuSceneBuilder.CapturePreview("Logs/Test_1_Menu_Acustica.png");
 
+            // Sin visor (como al dar Play sin Quest Link) el menú debe verse y usarse con el mouse.
+            Check(DesktopFallback.IsActive, "Sin visor se activa el modo escritorio");
+            Check(Camera.main != null && Mathf.Abs(Camera.main.transform.position.y - 1.6f) < 0.05f,
+                "En modo escritorio la cámara queda a la altura de los ojos (1.6 m)");
+            Check(MouseReaches(menu.EnterButton), "Un clic del mouse sobre \"Ingresar al estudio\" llega al botón");
+            Check(MouseReaches(electronicCard), "Un clic del mouse sobre la tarjeta electrónica llega a la tarjeta");
+
             electronicCard.Button.onClick.Invoke();
             yield return 0.5f;
             Check(settings.Kit == DrumKitType.Electronic, "Elegir \"Batería electrónica\" cambia el kit");
@@ -215,6 +241,11 @@ namespace AnyDrums.EditorTools
             Check(kitElectronic != null && kitElectronic.activeInHierarchy && kitAcoustic != null && !kitAcoustic.activeInHierarchy,
                 "El estudio muestra la batería electrónica elegida");
             Check(Near(AudioListener.volume, 0.35f), "El estudio conserva el volumen elegido (35 %)");
+            var head = Camera.main;
+            Check(head != null && Mathf.Abs(head.transform.position.y - 1.6f) < 0.05f,
+                "En el estudio (modo escritorio) la cámara queda a la altura de los ojos");
+            if (head != null)
+                MainMenuSceneBuilder.CaptureView("Logs/Test_Studio_Escritorio.png", head.transform.position, head.transform.rotation, head.fieldOfView);
             Check(settings.CurrentBank.Kit == DrumKitType.Electronic, "El estudio usa el banco de samples electrónico");
 
             var panel = Object.FindFirstObjectByType<SessionPanelController>();
@@ -237,6 +268,17 @@ namespace AnyDrums.EditorTools
             Check(panelVolume.Percent == 35, "El panel muestra el volumen actual (35 %)");
             var panelElectronic = Card(panel.Panel, DrumKitType.Electronic);
             Check(panelElectronic.IsSelected, "El panel muestra el kit actual");
+            Check(MouseReaches(panel.BackToMenuButton), "En el panel, un clic del mouse llega a \"Volver al menú\"");
+            var panelGroup = panel.Panel.GetComponent<CanvasGroup>();
+            yield return Until("terminar la animación de apertura", () => panelGroup.alpha >= 0.999f);
+            Check(panelGroup.alpha >= 0.999f, "El panel termina de aparecer (opaco)");
+            if (head != null)
+            {
+                MainMenuSceneBuilder.CaptureView("Logs/Test_Studio_Panel_Escritorio.png", head.transform.position, head.transform.rotation, head.fieldOfView);
+                // Solo el panel sobre fondo blanco: sirve para ver si el fondo del panel deja pasar el cuarto.
+                MainMenuSceneBuilder.CaptureView("Logs/Test_Panel_SobreBlanco.png", head.transform.position, head.transform.rotation, head.fieldOfView,
+                    1 << MenuUIKit.UILayer, Color.white);
+            }
 
             Card(panel.Panel, DrumKitType.Acoustic).Button.onClick.Invoke();
             yield return 0.4f;

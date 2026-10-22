@@ -174,9 +174,15 @@ namespace AnyDrums.Studio
             if (forward.sqrMagnitude < 1e-4f) forward = Vector3.ProjectOnPlane(head.up, Vector3.up);
             forward.Normalize();
 
-            Vector3 direction = Quaternion.Euler(0f, _yawOffset, 0f) * forward;
-            Vector3 position = head.position + direction * _distance;
-            position.y = head.position.y + _heightOffset;
+            // En un monitor el campo de visión es más estrecho que en el visor: el panel va casi al frente.
+            bool desktop = DesktopFallback.IsActive;
+            float yaw = desktop ? -8f : _yawOffset;
+            float distance = desktop ? 0.75f : _distance;
+            float height = desktop ? -0.06f : _heightOffset;
+
+            Vector3 direction = Quaternion.Euler(0f, yaw, 0f) * forward;
+            Vector3 position = head.position + direction * distance;
+            position.y = head.position.y + height;
             _panel.SetPositionAndRotation(position, Quaternion.LookRotation(direction, Vector3.up));
         }
 

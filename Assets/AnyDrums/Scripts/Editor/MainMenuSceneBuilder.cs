@@ -70,7 +70,8 @@ namespace AnyDrums.EditorTools
         public static void CapturePreview(string path) =>
             CaptureView(path, new Vector3(0f, EyeHeight + 0.05f, 0f), Quaternion.Euler(4f, 0f, 0f), 62f);
 
-        public static void CaptureView(string path, Vector3 position, Quaternion rotation, float fieldOfView)
+        public static void CaptureView(string path, Vector3 position, Quaternion rotation, float fieldOfView,
+            int cullingMask = ~0, Color? background = null)
         {
             Canvas.ForceUpdateCanvases();
             var go = new GameObject("PreviewCamera");
@@ -80,8 +81,9 @@ namespace AnyDrums.EditorTools
                 cam.transform.SetPositionAndRotation(position, rotation);
                 cam.fieldOfView = fieldOfView;
                 cam.nearClipPlane = 0.05f;
+                cam.cullingMask = cullingMask;
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = MenuPalette.Background;
+                cam.backgroundColor = background ?? MenuPalette.Background;
                 var rt = new RenderTexture(1800, 1200, 24) { antiAliasing = 8 };
                 cam.targetTexture = rt;
                 cam.Render();
@@ -182,6 +184,7 @@ namespace AnyDrums.EditorTools
             var rig = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             rig.name = prefab.name;
             rig.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            SuppressDeprecatedPrefabWarnings(rig);
 
             var camera = FindDeep(rig.transform, "CenterEyeAnchor").GetComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
@@ -243,7 +246,7 @@ namespace AnyDrums.EditorTools
             var canvasRt = (RectTransform)canvas.transform;
             canvasRt.localPosition = new Vector3(0f, EyeHeight, 0f);
 
-            accent.Graphics.Add(Img(Centered(UI("Halo", canvasRt), 2100f, 1500f), Art("glow"), WithAlpha(acoustic, 0.14f)));
+            accent.Graphics.Add(Img(Centered(UI("Halo", canvasRt), 2100f, 1500f), Art("glow"), WithAlpha(acoustic, 0.08f)));
             PanelBackground(canvasRt, 44f);
             var panel = canvasRt;
 

@@ -14,8 +14,9 @@ namespace AnyDrums.Menu
     {
         static readonly Color BackgroundIdle = new Color32(0x1A, 0x1D, 0x25, 0xFF);
         static readonly Color BackgroundHover = new Color32(0x22, 0x26, 0x30, 0xFF);
-        static readonly Color BorderIdle = new Color(1f, 1f, 1f, 0.10f);
-        static readonly Color BorderHover = new Color(1f, 1f, 1f, 0.32f);
+        // Bordes opacos (mezclados con el fondo de la tarjeta) para que se vean igual en espacio de color Gamma y Lineal.
+        public static readonly Color BorderIdle = Opaque(Color.Lerp(BackgroundIdle, Color.white, 0.10f));
+        static readonly Color BorderHover = Opaque(Color.Lerp(BackgroundIdle, Color.white, 0.32f));
         static readonly Color IconIdle = new Color32(0x8A, 0x91, 0xA1, 0xFF);
         static readonly Color TitleIdle = new Color32(0xC9, 0xCE, 0xD8, 0xFF);
 
@@ -42,6 +43,8 @@ namespace AnyDrums.Menu
         public Color Accent => _accent;
         public Button Button => _button;
         public bool IsSelected => _selected;
+
+        static Color Opaque(Color c) => new Color(c.r, c.g, c.b, 1f);
 
         public void SetSelected(bool selected, bool instant = false)
         {
@@ -92,7 +95,7 @@ namespace AnyDrums.Menu
             _title.color = Color.Lerp(TitleIdle, Color.white, Mathf.Max(_selection, _hover));
 
             var glow = _accent;
-            glow.a = Mathf.Clamp01(0.45f * _selection + 0.4f * pulse);
+            glow.a = Mathf.Clamp01(0.3f * _selection + 0.35f * pulse);
             _glow.color = glow;
 
             var genres = _accent;
