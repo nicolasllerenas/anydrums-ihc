@@ -168,23 +168,126 @@ namespace AnyDrums.Studio
         {
             var cam = Camera.main;
             if (cam == null) return;
-            Transform head = cam.transform;
+            PlaceFor(cam.transform.position, cam.transform.forward);
+        }
 
-            Vector3 forward = Vector3.ProjectOnPlane(head.forward, Vector3.up);
-            if (forward.sqrMagnitude < 1e-4f) forward = Vector3.ProjectOnPlane(head.up, Vector3.up);
+        // Orden de preferencia: primero a la izquierda (para no tapar la batería), luego al frente o a la derecha.
+        static readonly float[] HeadsetYaws = { 0f, -15f, 12f, -32f, 28f, 45f, -50f };
+        static readonly float[] DesktopYaws = { -8f, -25f, 15f };
+
+        /// <summary>
+        /// Ubica el panel junto al usuario. Prueba varias posiciones y elige la primera que no choca con piezas de la
+        /// batería ni con el cuarto y que se ve sin obstáculos desde los ojos; sentado en la banqueta, el hi-hat y el
+        /// crash quedan a la izquierda y a menos de un metro, y podían tapar el panel.
+        /// </summary>
+        public void PlaceFor(Vector3 head, Vector3 lookDirection)
+        {
+            Vector3 forward = Vector3.ProjectOnPlane(lookDirection, Vector3.up);
+            if (forward.sqrMagnitude < 1e-4f) forward = Vector3.forward;
             forward.Normalize();
 
             // En un monitor el campo de visión es más estrecho que en el visor: el panel va casi al frente.
             bool desktop = DesktopFallback.IsActive;
-            float yaw = desktop ? -8f : _yawOffset;
-            float distance = desktop ? 0.75f : _distance;
-            float height = desktop ? -0.06f : _heightOffset;
+            float[] yaws = desktop ? DesktopYaws : HeadsetYaws;
+            float[] distances = desktop ? new[] { 0.75f, 0.6f } : new[] { _distance, 0.72f, 0.58f };
+            // Si alrededor está todo ocupado (sentado en la banqueta), se prueba por encima de los platos.
+            float[] heights = desktop ? new[] { -0.06f } : new[] { _heightOffset, 0.05f, 0.2f, 0.32f };
+            float baseYaw = desktop ? 0f : _yawOffset;
 
-            Vector3 direction = Quaternion.Euler(0f, yaw, 0f) * forward;
-            Vector3 position = head.position + direction * distance;
-            position.y = head.position.y + height;
-            _panel.SetPositionAndRotation(position, Quaternion.LookRotation(direction, Vector3.up));
+            Physics.SyncTransforms();
+            var size = PanelSize();
+            var obstacles = KitObstacles();
+            int bestHits = int.MaxValue;
+            Vector3 bestPosition = default;
+            Quaternion bestRotation = Quaternion.identity;
+
+            string chosen = "";
+            foreach (float height in heights)
+            foreach (float distance in distances)
+            foreach (float yawStep in yaws)
+            {
+                Vector3 direction = Quaternion.Euler(0f, baseYaw + yawStep, 0f) * forward;
+                Vector3 position = head + direction * distance;
+                position.y = head.y + height;
+                // El panel mira hacia los ojos (si queda más arriba, se inclina hacia abajo).
+                var rotation = Quaternion.LookRotation(position - head, Vector3.up);
+                int hits = CountObstacles(head, position, rotation, size, obstacles);
+                if (hits < bestHits)
+                {
+                    bestHits = hits;
+                    bestPosition = position;
+                    bestRotation = rotation;
+                    chosen = $"giro {baseYaw + yawStep:0}°, {distance:0.00} m, altura {height:+0.00;-0.00} m";
+                }
+                if (hits == 0) goto Found;
+            }
+            Found:
+            _panel.SetPositionAndRotation(bestPosition, bestRotation);
+            Debug.Log($"[AnyDrums] Panel de sesión: {chosen}, obstáculos {bestHits}");
         }
+
+        Vector2 PanelSize()
+        {
+            var rect = ((RectTransform)_panel).rect;
+            float scale = _panelScale > 0f ? _panelScale : _panel.localScale.x;
+            return new Vector2(rect.width, rect.height) * scale;
+        }
+
+        // Cajas de las piezas del kit visible (sin las muy grandes, como el soporte completo, que lo bloquearían todo).
+        static List<Bounds> KitObstacles()
+        {
+            var result = new List<Bounds>();
+            var switcher = FindFirstObjectByType<StudioKitSwitcher>();
+            var kit = switcher != null ? switcher.ActiveKit : null;
+            if (kit == null) return result;
+            foreach (var renderer in kit.GetComponentsInChildren<Renderer>())
+                if (renderer.bounds.size.magnitude < 1.6f) result.Add(renderer.bounds);
+            return result;
+        }
+
+        static int CountObstacles(Vector3 head, Vector3 center, Quaternion rotation, Vector2 size, List<Bounds> obstacles)
+        {
+            Vector3 right = rotation * Vector3.right * (size.x * 0.5f);
+            Vector3 up = rotation * Vector3.up * (size.y * 0.5f);
+            Vector3[] points =
+            {
+                center, center + right + up, center + right - up, center - right + up, center - right - up,
+                center + right, center - right, center + up, center - up
+            };
+            var panelBox = new Bounds(center, Vector3.zero);
+            foreach (var p in points) panelBox.Encapsulate(p);
+            panelBox.Expand(0.04f);
+
+            int hits = 0;
+            foreach (var bounds in obstacles)
+            {
+                if (bounds.Intersects(panelBox))
+                {
+                    hits++;
+                    continue;
+                }
+                foreach (var p in points)
+                {
+                    Vector3 toPoint = p - head;
+                    if (bounds.IntersectRay(new Ray(head, toPoint), out float d) && d < toPoint.magnitude)
+                    {
+                        hits++;
+                        break;
+                    }
+                }
+            }
+
+            // Paredes y muebles del cuarto (colisionadores), sin contar el propio rig del usuario.
+            foreach (var p in points)
+                if (Physics.Linecast(head, p, out var hit, ~0, QueryTriggerInteraction.Ignore) && !IsPlayer(hit.collider))
+                    hits++;
+            foreach (var collider in Physics.OverlapBox(center, new Vector3(size.x * 0.5f, size.y * 0.5f, 0.03f), rotation, ~0,
+                         QueryTriggerInteraction.Ignore))
+                if (!IsPlayer(collider)) hits++;
+            return hits;
+        }
+
+        static bool IsPlayer(Collider collider) => collider.GetComponentInParent<OVRCameraRig>() != null;
 
         void Animate(float target)
         {

@@ -13,6 +13,11 @@ namespace AnyDrums.Studio
 
         DrumSessionSettings _settings;
 
+        /// <summary>El modelo del kit que se está mostrando.</summary>
+        public GameObject ActiveKit =>
+            _acousticKit != null && _acousticKit.activeInHierarchy ? _acousticKit
+            : _electronicKit != null && _electronicKit.activeInHierarchy ? _electronicKit : null;
+
         void Awake()
         {
             _settings = DrumSessionSettings.Instance;
