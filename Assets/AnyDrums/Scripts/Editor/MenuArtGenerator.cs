@@ -53,6 +53,13 @@ namespace AnyDrums.EditorTools
             SaveSprite("icon_power", Draw(256, (p, c) => Mathf.Min(
                 Sdf.Arc(p, new Vector2(128, 116), 80f, 20f, 125f, 415f),
                 Sdf.Segment(p, new Vector2(128, 128), new Vector2(128, 222), 10f))));
+            SaveSprite("icon_back", Draw(256, (p, c) => Mathf.Min(
+                Sdf.Segment(p, new Vector2(56, 128), new Vector2(204, 128), 13f),
+                Mathf.Min(Sdf.Segment(p, new Vector2(116, 68), new Vector2(56, 128), 13f),
+                          Sdf.Segment(p, new Vector2(116, 188), new Vector2(56, 128), 13f)))));
+            SaveSprite("icon_close", Draw(256, (p, c) => Mathf.Min(
+                Sdf.Segment(p, new Vector2(74, 74), new Vector2(182, 182), 13f),
+                Sdf.Segment(p, new Vector2(74, 182), new Vector2(182, 74), 13f))));
             SaveSprite("icon_minus", Draw(256, (p, c) => Sdf.Segment(p, new Vector2(66, 128), new Vector2(190, 128), 13f)));
             SaveSprite("icon_plus", Draw(256, (p, c) => Mathf.Min(
                 Sdf.Segment(p, new Vector2(66, 128), new Vector2(190, 128), 13f),

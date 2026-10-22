@@ -79,15 +79,28 @@ namespace AnyDrums.Menu
         void Update()
         {
             bool interactable = _selectable.IsInteractable();
-            float targetScale = !interactable ? 1f : _pressed ? _pressedScale : _hovered ? _hoverScale : 1f;
             float k = 1f - Mathf.Exp(-18f * Time.unscaledDeltaTime);
-            _scaleTarget.localScale = Vector3.Lerp(_scaleTarget.localScale, Vector3.one * targetScale, k);
+
+            // Solo se escribe cuando falta llegar al valor final, para no reconstruir el Canvas en cada frame.
+            float targetScale = !interactable ? 1f : _pressed ? _pressedScale : _hovered ? _hoverScale : 1f;
+            Vector3 scale = _scaleTarget.localScale;
+            if (Mathf.Abs(scale.x - targetScale) > 0.0005f)
+            {
+                float next = Mathf.Lerp(scale.x, targetScale, k);
+                if (Mathf.Abs(next - targetScale) < 0.001f) next = targetScale;
+                _scaleTarget.localScale = new Vector3(next, next, 1f);
+            }
 
             if (_tintTarget != null)
             {
                 Color target = !interactable ? _normalColor * new Color(0.6f, 0.6f, 0.6f, 0.6f)
                     : _pressed ? _pressedColor : _hovered ? _hoverColor : _normalColor;
-                _tintTarget.color = Color.Lerp(_tintTarget.color, target, k);
+                Color current = _tintTarget.color;
+                if (current != target)
+                {
+                    Color next = Color.Lerp(current, target, k);
+                    _tintTarget.color = Vector4.Distance(next, target) < 0.004f ? target : next;
+                }
             }
         }
     }

@@ -1,3 +1,4 @@
+using AnyDrums.Menu;
 using UnityEngine;
 
 namespace AnyDrums.EditorTools
@@ -12,8 +13,7 @@ namespace AnyDrums.EditorTools
         public static readonly Color TextMuted = new Color32(0x74, 0x7D, 0x8F, 0xFF);
         public static readonly Color OnAccent = new Color32(0x0C, 0x0E, 0x13, 0xFF);
 
-        // Acústica: ámbar cálido (madera, calidez orgánica). Electrónica: cian (pantallas, pads, versatilidad moderna).
-        public static readonly Color AcousticAccent = new Color32(0xF5, 0xA6, 0x23, 0xFF);
-        public static readonly Color ElectronicAccent = new Color32(0x2B, 0xD4, 0xF2, 0xFF);
+        public static Color AcousticAccent => KitPalette.AcousticAccent;
+        public static Color ElectronicAccent => KitPalette.ElectronicAccent;
     }
 }

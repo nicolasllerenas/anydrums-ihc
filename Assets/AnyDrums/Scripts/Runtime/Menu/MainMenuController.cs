@@ -6,127 +6,66 @@ using UnityEngine.UI;
 namespace AnyDrums.Menu
 {
     /// <summary>
-    /// Escena 1 (menú inicial): selección de batería acústica o electrónica (RF1), volumen general (RF4)
-    /// y entrada al estudio con fundido a negro. La elección se guarda en <see cref="DrumSessionSettings"/>.
-    /// Por defecto la batería acústica está seleccionada y el volumen en 75 %, así "Ingresar al estudio"
-    /// funciona aunque el usuario no cambie nada.
+    /// Escena 1 (menú inicial). La selección de batería (RF1) y el volumen (RF4) los manejan
+    /// <see cref="KitSelector"/> y <see cref="VolumeControl"/>; este componente se encarga de entrar al
+    /// estudio con fundido a negro, de salir y de los mensajes al usuario. Por defecto la batería acústica
+    /// está seleccionada y el volumen en 75 %, así "Ingresar al estudio" funciona aunque no se cambie nada.
     /// </summary>
     public class MainMenuController : MonoBehaviour
     {
-        [Header("Tipo de batería")]
-        [SerializeField] KitOptionCard _acousticCard;
-        [SerializeField] KitOptionCard _electronicCard;
+        const string HintText = "Apunta con el mando y presiona el gatillo para seleccionar";
 
-        [Header("Volumen")]
-        [SerializeField] Slider _volumeSlider;
-        [SerializeField] TMP_Text _volumeValueLabel;
-        [SerializeField] Image _volumeIcon;
-        [SerializeField] Sprite _volumeMuteSprite;
-        [SerializeField] Sprite _volumeLowSprite;
-        [SerializeField] Sprite _volumeHighSprite;
-        [SerializeField] Button _volumeDownButton;
-        [SerializeField] Button _volumeUpButton;
-        [SerializeField] int _volumeStep = 5;
-        [SerializeField] PointerUpNotifier _volumeRelease;
-
-        [Header("Acciones")]
+        [SerializeField] KitSelector _kitSelector;
+        [SerializeField] VolumeControl _volumeControl;
         [SerializeField] Button _enterButton;
-        [SerializeField] MenuSelectableFeedback _enterButtonFeedback;
+        [Tooltip("Resumen de lo elegido debajo de \"Ingresar al estudio\".")]
+        [SerializeField] TMP_Text _enterSummary;
         [SerializeField] Button _exitButton;
-
-        [Header("Escenas del estudio (deben estar en Build Settings)")]
-        [SerializeField] string _acousticScene = "drumsAcustic";
-        [SerializeField] string _electronicScene = "drumsElectric";
-
-        [Header("Color del kit seleccionado")]
-        [Tooltip("Elementos que toman el color del kit; se conserva su transparencia.")]
-        [SerializeField] Graphic[] _accentGraphics;
-        [SerializeField] Renderer _floorGlow;
-        [SerializeField] TMP_Text _title;
-
-        [Header("Otros")]
         [SerializeField] TMP_Text _hintLabel;
         [SerializeField] CanvasGroup _panelGroup;
-        [SerializeField] MenuAudio _audio;
-
-        const string TitleText = "AnyDrums <color=#{0}>VR</color>";
-        const string HintText = "Apunta con el mando y presiona el gatillo para seleccionar";
-        static readonly int TintColorId = Shader.PropertyToID("_TintColor");
 
         DrumSessionSettings _settings;
-        Color _accent;
-        Color _targetAccent;
-        MaterialPropertyBlock _floorBlock;
         Coroutine _hintRoutine;
         Color _hintColor;
 
-        public DrumKitType SelectedKit => _settings.Kit;
-        public float VolumePercent => _volumeSlider.value;
+        public KitSelector KitSelector => _kitSelector;
+        public VolumeControl VolumeControl => _volumeControl;
+        public Button EnterButton => _enterButton;
+        public TMP_Text EnterSummary => _enterSummary;
 
         void Awake()
         {
             _settings = DrumSessionSettings.Instance;
-            _floorBlock = new MaterialPropertyBlock();
             _hintColor = _hintLabel.color;
         }
 
         void OnEnable()
         {
-            _acousticCard.Button.onClick.AddListener(OnAcousticClicked);
-            _electronicCard.Button.onClick.AddListener(OnElectronicClicked);
-            _volumeSlider.onValueChanged.AddListener(OnVolumeSliderChanged);
-            _volumeRelease.Released.AddListener(OnVolumeReleased);
-            _volumeDownButton.onClick.AddListener(OnVolumeDown);
-            _volumeUpButton.onClick.AddListener(OnVolumeUp);
             _enterButton.onClick.AddListener(EnterStudio);
             _exitButton.onClick.AddListener(QuitApplication);
+            _settings.Changed += OnSettingsChanged;
         }
 
         void OnDisable()
         {
-            _acousticCard.Button.onClick.RemoveListener(OnAcousticClicked);
-            _electronicCard.Button.onClick.RemoveListener(OnElectronicClicked);
-            _volumeSlider.onValueChanged.RemoveListener(OnVolumeSliderChanged);
-            _volumeRelease.Released.RemoveListener(OnVolumeReleased);
-            _volumeDownButton.onClick.RemoveListener(OnVolumeDown);
-            _volumeUpButton.onClick.RemoveListener(OnVolumeUp);
             _enterButton.onClick.RemoveListener(EnterStudio);
             _exitButton.onClick.RemoveListener(QuitApplication);
+            if (_settings != null) _settings.Changed -= OnSettingsChanged;
         }
 
         void Start()
         {
-            // Al volver desde el estudio, el menú muestra la configuración que ya estaba elegida.
-            _volumeSlider.SetValueWithoutNotify(Mathf.Round(_settings.MasterVolume * 100f));
-            ApplyKit(_settings.Kit, instant: true);
-            RefreshVolume();
             _hintLabel.text = HintText;
+            _panelGroup.interactable = true;
+            RefreshSummary();
             SceneTransition.FadeInFromBlack();
         }
-
-        void Update()
-        {
-            if (_accent == _targetAccent) return;
-            _accent = Color.Lerp(_accent, _targetAccent, 1f - Mathf.Exp(-12f * Time.unscaledDeltaTime));
-            if (Vector4.Distance(_accent, _targetAccent) < 0.002f) _accent = _targetAccent;
-            ApplyAccent();
-        }
-
-        // ---------- API pública (también sirve para pruebas automáticas) ----------
-
-        public void SelectKit(DrumKitType kit)
-        {
-            _settings.Kit = kit;
-            ApplyKit(kit, instant: false);
-            if (_audio != null) _audio.PlayKitPreview(kit);
-        }
-
-        public void SetVolumePercent(float percent) => _volumeSlider.value = Mathf.Clamp(percent, 0f, 100f);
 
         public void EnterStudio()
         {
             if (SceneTransition.IsBusy) return;
-            string scene = _settings.Kit == DrumKitType.Acoustic ? _acousticScene : _electronicScene;
+            var catalog = DrumKitCatalog.Load();
+            string scene = catalog != null ? catalog.StudioScene : "Studio";
             _panelGroup.interactable = false;
             if (!SceneTransition.LoadScene(scene))
             {
@@ -142,82 +81,12 @@ namespace AnyDrums.Menu
             SceneTransition.Quit();
         }
 
-        // ---------- Eventos de la UI ----------
+        void OnSettingsChanged(DrumSessionSettings settings) => RefreshSummary();
 
-        void OnAcousticClicked() => SelectKit(DrumKitType.Acoustic);
-        void OnElectronicClicked() => SelectKit(DrumKitType.Electronic);
-
-        void OnVolumeSliderChanged(float value)
+        void RefreshSummary()
         {
-            _settings.MasterVolume = value / 100f;
-            RefreshVolume();
-        }
-
-        // Al soltar el slider se repite el golpe con el volumen nuevo para calibrarlo sin entrar al estudio.
-        void OnVolumeReleased()
-        {
-            if (_audio != null) _audio.PlayKitPreview(_settings.Kit);
-        }
-
-        void OnVolumeDown() => StepVolume(-_volumeStep);
-        void OnVolumeUp() => StepVolume(_volumeStep);
-
-        void StepVolume(int delta)
-        {
-            float snapped = Mathf.Round((_volumeSlider.value + delta) / _volumeStep) * _volumeStep;
-            _volumeSlider.value = Mathf.Clamp(snapped, 0f, 100f);
-            if (_audio != null) _audio.PlayKitPreview(_settings.Kit);
-        }
-
-        // ---------- Presentación ----------
-
-        void ApplyKit(DrumKitType kit, bool instant)
-        {
-            _acousticCard.SetSelected(kit == DrumKitType.Acoustic, instant);
-            _electronicCard.SetSelected(kit == DrumKitType.Electronic, instant);
-            _targetAccent = kit == DrumKitType.Acoustic ? _acousticCard.Accent : _electronicCard.Accent;
-            if (instant)
-            {
-                _accent = _targetAccent;
-                ApplyAccent();
-            }
-        }
-
-        void ApplyAccent()
-        {
-            foreach (var graphic in _accentGraphics)
-            {
-                if (graphic == null) continue;
-                var c = _accent;
-                c.a = graphic.color.a;
-                graphic.color = c;
-            }
-
-            if (_enterButtonFeedback != null) _enterButtonFeedback.SetBaseColor(_accent);
-
-            var handleColors = _volumeSlider.colors;
-            handleColors.highlightedColor = Color.Lerp(Color.white, _accent, 0.35f);
-            handleColors.pressedColor = _accent;
-            handleColors.selectedColor = Color.white;
-            _volumeSlider.colors = handleColors;
-
-            if (_title != null) _title.text = string.Format(TitleText, ColorUtility.ToHtmlStringRGB(_accent));
-
-            if (_floorGlow != null)
-            {
-                _floorGlow.GetPropertyBlock(_floorBlock);
-                _floorBlock.SetColor(TintColorId, new Color(_accent.r, _accent.g, _accent.b, 0.22f));
-                _floorGlow.SetPropertyBlock(_floorBlock);
-            }
-        }
-
-        void RefreshVolume()
-        {
-            int percent = Mathf.RoundToInt(_volumeSlider.value);
-            _volumeValueLabel.text = $"{percent} %";
-            _volumeIcon.sprite = percent == 0 ? _volumeMuteSprite : percent < 50 ? _volumeLowSprite : _volumeHighSprite;
-            _volumeDownButton.interactable = percent > 0;
-            _volumeUpButton.interactable = percent < 100;
+            if (_enterSummary != null)
+                _enterSummary.text = $"{KitPalette.DisplayName(_settings.Kit)}  ·  Volumen {Mathf.RoundToInt(_settings.MasterVolume * 100f)} %";
         }
 
         void ShowHint(string message, bool warning)

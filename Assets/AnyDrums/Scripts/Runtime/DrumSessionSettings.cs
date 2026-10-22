@@ -5,8 +5,9 @@ namespace AnyDrums
 {
     /// <summary>
     /// Configuración de la sesión elegida en el menú (tipo de batería y volumen general).
-    /// Vive en DontDestroyOnLoad para que el estudio se cargue con lo que eligió el usuario
-    /// y para que, al volver al menú, la configuración actual aparezca ya marcada.
+    /// Vive en DontDestroyOnLoad para que el estudio se cargue con el banco de samples y el volumen
+    /// que eligió el usuario y para que, al volver al menú, la configuración actual aparezca ya marcada.
+    /// Se crea sola al iniciar el juego, así también funciona si se da Play directamente en el estudio.
     /// </summary>
     public class DrumSessionSettings : MonoBehaviour
     {
@@ -17,6 +18,8 @@ namespace AnyDrums
 
         [SerializeField] DrumKitType _kit = DefaultKit;
         [SerializeField, Range(0f, 1f)] float _masterVolume = DefaultVolume;
+
+        DrumSampleBank _currentBank;
 
         /// <summary>Se dispara cuando cambia el kit o el volumen.</summary>
         public event Action<DrumSessionSettings> Changed;
@@ -42,6 +45,7 @@ namespace AnyDrums
             {
                 if (_kit == value) return;
                 _kit = value;
+                LoadBank();
                 Changed?.Invoke(this);
             }
         }
@@ -60,8 +64,14 @@ namespace AnyDrums
             }
         }
 
+        /// <summary>Banco de samples del kit elegido (puede ser null si no hay catálogo).</summary>
+        public DrumSampleBank CurrentBank => _currentBank;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() => _instance = null;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void CreateOnStartup() => _ = Instance;
 
         void Awake()
         {
@@ -74,11 +84,19 @@ namespace AnyDrums
             if (transform.parent != null) transform.SetParent(null);
             DontDestroyOnLoad(gameObject);
             AudioListener.volume = _masterVolume;
+            LoadBank();
         }
 
         void OnDestroy()
         {
             if (_instance == this) _instance = null;
+        }
+
+        void LoadBank()
+        {
+            var catalog = DrumKitCatalog.Load();
+            _currentBank = catalog != null ? catalog.GetBank(_kit) : null;
+            if (_currentBank != null) _currentBank.Preload();
         }
     }
 }

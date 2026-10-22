@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24e9bd52a0b34e045a0cced93734d056, type: 3}
+  m_Name: Bank_Electronic
+  m_EditorClassIdentifier: 
+  _kit: 1
+  _displayName: "Bater\xEDa electr\xF3nica"
+  _kick: {fileID: 8300000, guid: 577e2a995bca97d42beb88815fb66de7, type: 3}
+  _snare: {fileID: 8300000, guid: 834359ce9466a8c4087c950f6b5bf46a, type: 3}
+  _hiHatClosed: {fileID: 8300000, guid: 6c5c12a25fab5ac439be08a96f39aa14, type: 3}
+  _hiHatOpen: {fileID: 8300000, guid: e952dc09c9a50254ab80e2c4650769aa, type: 3}
+  _hiHatPedal: {fileID: 8300000, guid: fd0834830ca2318479a251b5b76d5782, type: 3}
+  _tom1: {fileID: 8300000, guid: 10ae887c34fa6d8488b2e0d255be4ef3, type: 3}
+  _tom2: {fileID: 8300000, guid: 1abf436519684d847a0edfae63fadb40, type: 3}
+  _floorTom: {fileID: 8300000, guid: b8df83748404002498b325d81d7f0fb0, type: 3}
+  _crash: {fileID: 8300000, guid: d756ffcd9192e04478797ae4199b92f0, type: 3}
+  _ride: {fileID: 8300000, guid: d39591d95df6d174b84a955025c0f728, type: 3}

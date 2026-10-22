@@ -42,9 +42,14 @@ namespace AnyDrums
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() => _instance = null;
 
-        /// <summary>Empieza en negro y aclara la vista. Útil al iniciar la aplicación.</summary>
+        /// <summary>
+        /// Empieza en negro y aclara la vista. Útil al iniciar la aplicación. Si la escena se cargó con
+        /// <see cref="LoadScene"/>, esa transición ya aclara la vista y esta llamada no hace nada
+        /// (antes la interrumpía y dejaba la transición marcada como ocupada).
+        /// </summary>
         public static void FadeInFromBlack(float duration = DefaultFadeDuration)
         {
+            if (IsBusy) return;
             var t = Instance;
             t.StopAllCoroutines();
             t.StartCoroutine(t.Fade(1f, 0f, duration));

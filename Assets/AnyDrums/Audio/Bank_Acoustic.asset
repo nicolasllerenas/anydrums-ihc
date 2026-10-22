@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24e9bd52a0b34e045a0cced93734d056, type: 3}
+  m_Name: Bank_Acoustic
+  m_EditorClassIdentifier: 
+  _kit: 0
+  _displayName: "Bater\xEDa ac\xFAstica"
+  _kick: {fileID: 8300000, guid: a2f3083f8655a944ab72f938d6083336, type: 3}
+  _snare: {fileID: 8300000, guid: 9eb911f633d59b74f96f4dc4b9052c9f, type: 3}
+  _hiHatClosed: {fileID: 8300000, guid: 88dad8542fdab534891b8520f2a3ef8f, type: 3}
+  _hiHatOpen: {fileID: 8300000, guid: 03cc4173f5bae7543b9bdfd09719ab4d, type: 3}
+  _hiHatPedal: {fileID: 8300000, guid: 07c72e5ef6ae31e4aa9434de85869409, type: 3}
+  _tom1: {fileID: 8300000, guid: a91da3ec08ca8844a840e6fd33dfb1ba, type: 3}
+  _tom2: {fileID: 8300000, guid: 70ff158d64609c64b8464ac18c5f885e, type: 3}
+  _floorTom: {fileID: 8300000, guid: fdc9b19e6be9ebb4e889bb4630bb50b2, type: 3}
+  _crash: {fileID: 8300000, guid: eb5afabd70dae6543afb0588c3ea90e7, type: 3}
+  _ride: {fileID: 8300000, guid: 756d959e59d4e1f4ab949e11256746b7, type: 3}

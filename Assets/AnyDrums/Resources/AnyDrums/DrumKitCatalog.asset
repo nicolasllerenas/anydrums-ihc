@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fce431381a3357949a805a7b17cf8039, type: 3}
+  m_Name: DrumKitCatalog
+  m_EditorClassIdentifier: 
+  _acousticBank: {fileID: 11400000, guid: 8e22baa594d499f4d8e617b93cefea82, type: 2}
+  _electronicBank: {fileID: 11400000, guid: d9749685498ded64b850aae4ef378ce4, type: 2}
+  _menuScene: MainMenu
+  _studioScene: Studio
