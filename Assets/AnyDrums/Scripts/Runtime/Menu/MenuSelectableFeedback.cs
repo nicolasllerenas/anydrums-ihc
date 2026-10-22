@@ -55,6 +55,7 @@ namespace AnyDrums.Menu
 
         public void OnPointerEnter(PointerEventData eventData)
         {
+            InputDiagnostics.LogUiEvent("apuntado", this);
             if (!_selectable.IsInteractable()) return;
             _hovered = true;
             if (_hoverSound && _audio != null) _audio.PlayHover();
@@ -68,6 +69,7 @@ namespace AnyDrums.Menu
 
         public void OnPointerDown(PointerEventData eventData)
         {
+            InputDiagnostics.LogUiEvent("presionado", this);
             if (!_selectable.IsInteractable()) return;
             _pressed = true;
             if (_clickSound && _audio != null) _audio.PlayClick();

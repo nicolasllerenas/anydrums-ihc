@@ -60,7 +60,15 @@ namespace AnyDrums
 
         void Start() => Setup();
 
-        void OnSceneLoaded(Scene scene, LoadSceneMode mode) => Setup();
+        // Se espera un frame: el PointableCanvasModule de la escena nueva (en modo exclusivo) desactiva en su Start
+        // los demás módulos de entrada, incluido el del mouse si se agregara antes.
+        void OnSceneLoaded(Scene scene, LoadSceneMode mode) => StartCoroutine(SetupNextFrame());
+
+        IEnumerator SetupNextFrame()
+        {
+            yield return null;
+            Setup();
+        }
 
         void Setup()
         {
@@ -79,9 +87,14 @@ namespace AnyDrums
             var eventSystem = FindFirstObjectByType<EventSystem>();
             if (eventSystem != null)
             {
-                if (eventSystem.TryGetComponent(out PointableCanvasModule pointable)) pointable.enabled = false;
+                if (eventSystem.TryGetComponent(out PointableCanvasModule pointable))
+                {
+                    pointable.ExclusiveMode = false;
+                    pointable.enabled = false;
+                }
                 if (!eventSystem.TryGetComponent(out StandaloneInputModule standalone))
-                    eventSystem.gameObject.AddComponent<StandaloneInputModule>();
+                    standalone = eventSystem.gameObject.AddComponent<StandaloneInputModule>();
+                standalone.enabled = true;
             }
         }
 
